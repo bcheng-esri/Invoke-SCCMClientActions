@@ -1,17 +1,16 @@
 <#
 .SYNOPSIS
-    Triggers all standard SCCM/MECM client actions on the local machine.
+    Triggers all standard SCCM/MECM machine-level client actions on the local machine.
 
 .DESCRIPTION
-    This script invokes every standard Configuration Manager client agent schedule
-    by its well-known Schedule ID via the SMS_Client WMI/CIM class (root\ccm
-    namespace). It runs against the local computer only.
+    This script invokes every standard Configuration Manager machine-level client
+    agent schedule by its well-known Schedule ID via the SMS_Client WMI/CIM class
+    (root\ccm namespace). It runs against the local computer only. A fixed
+    5-second delay is applied between each action.
 
     Schedule IDs triggered:
         {00000000-0000-0000-0000-000000000021}  Machine Policy Retrieval & Evaluation Cycle
         {00000000-0000-0000-0000-000000000022}  Machine Policy Evaluation Cycle
-        {00000000-0000-0000-0000-000000000026}  User Policy Retrieval Cycle
-        {00000000-0000-0000-0000-000000000027}  User Policy Evaluation Cycle
         {00000000-0000-0000-0000-000000000001}  Hardware Inventory Cycle
         {00000000-0000-0000-0000-000000000002}  Software Inventory Cycle
         {00000000-0000-0000-0000-000000000003}  Discovery Data Collection Cycle
@@ -23,16 +22,10 @@
         {00000000-0000-0000-0000-000000000113}  Software Updates Scan Cycle
         {00000000-0000-0000-0000-000000000108}  Software Updates Deployment Evaluation Cycle
 
-.PARAMETER DelaySeconds
-    Number of seconds to wait between triggering actions. Default is 2 seconds.
-
 .EXAMPLE
     .\Invoke-SCCMClientActions.ps1
-    Runs every standard action on the local computer.
-
-.EXAMPLE
-    .\Invoke-SCCMClientActions.ps1 -DelaySeconds 5
-    Runs every standard action on the local computer with a 5-second delay between actions.
+    Runs every standard machine-level action on the local computer with a 5-second
+    pause between each.
 
 .NOTES
     Requirements:
@@ -41,18 +34,15 @@
 #>
 
 [CmdletBinding()]
-param (
-    [Parameter()]
-    [ValidateRange(0, 60)]
-    [int]$DelaySeconds = 2
-)
+param ()
+
+# Fixed delay between actions, in seconds
+$DelaySeconds = 5
 
 # Map of friendly names to SCCM ScheduleIDs - all actions will be triggered
 $ScheduleMap = [ordered]@{
     'Machine Policy Retrieval & Evaluation Cycle' = '{00000000-0000-0000-0000-000000000021}'
     'Machine Policy Evaluation Cycle'             = '{00000000-0000-0000-0000-000000000022}'
-    'User Policy Retrieval Cycle'                 = '{00000000-0000-0000-0000-000000000026}'
-    'User Policy Evaluation Cycle'                = '{00000000-0000-0000-0000-000000000027}'
     'Hardware Inventory Cycle'                    = '{00000000-0000-0000-0000-000000000001}'
     'Software Inventory Cycle'                    = '{00000000-0000-0000-0000-000000000002}'
     'Discovery Data Collection Cycle'             = '{00000000-0000-0000-0000-000000000003}'
@@ -99,9 +89,7 @@ foreach ($name in $ScheduleMap.Keys) {
         Write-Warning ("    {0}" -f $_.Exception.Message)
     }
 
-    if ($DelaySeconds -gt 0) {
-        Start-Sleep -Seconds $DelaySeconds
-    }
+    Start-Sleep -Seconds $DelaySeconds
 }
 
 Write-Host ""

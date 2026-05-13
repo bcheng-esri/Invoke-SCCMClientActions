@@ -1,11 +1,11 @@
 # Invoke-SCCMClientActions
 
-A PowerShell script that triggers every standard Configuration Manager (SCCM/MECM) client agent action on the local computer — the same actions exposed in the **Configuration Manager** applet in Control Panel under the **Actions** tab, but scripted and runnable in a single command.
+A PowerShell script that triggers every standard Configuration Manager (SCCM/MECM) machine-level client agent action on the local computer — the same actions exposed in the **Configuration Manager** applet in Control Panel under the **Actions** tab, but scripted and runnable in a single command.
 
 ## Features
 
-- Triggers **all 14 standard SCCM client actions** via the `SMS_Client` CIM class
-- Configurable **delay between actions** to avoid hammering the client
+- Triggers **all 12 standard machine-level SCCM client actions** via the `SMS_Client` CIM class
+- Fixed **5-second pause** between actions to avoid hammering the client
 - Verifies the SCCM client is installed/reachable before triggering
 - Color-coded per-action status and warnings on failure
 
@@ -15,8 +15,6 @@ A PowerShell script that triggers every standard Configuration Manager (SCCM/MEC
 | --- | --- |
 | Machine Policy Retrieval & Evaluation Cycle | `{00000000-0000-0000-0000-000000000021}` |
 | Machine Policy Evaluation Cycle | `{00000000-0000-0000-0000-000000000022}` |
-| User Policy Retrieval Cycle | `{00000000-0000-0000-0000-000000000026}` |
-| User Policy Evaluation Cycle | `{00000000-0000-0000-0000-000000000027}` |
 | Hardware Inventory Cycle | `{00000000-0000-0000-0000-000000000001}` |
 | Software Inventory Cycle | `{00000000-0000-0000-0000-000000000002}` |
 | Discovery Data Collection Cycle | `{00000000-0000-0000-0000-000000000003}` |
@@ -28,6 +26,8 @@ A PowerShell script that triggers every standard Configuration Manager (SCCM/MEC
 | Software Updates Scan Cycle | `{00000000-0000-0000-0000-000000000113}` |
 | Software Updates Deployment Evaluation Cycle | `{00000000-0000-0000-0000-000000000108}` |
 
+> User Policy Retrieval and User Policy Evaluation cycles are intentionally omitted; this script only triggers machine-level actions.
+
 ## Requirements
 
 - Windows PowerShell 5.1 or PowerShell 7+
@@ -36,23 +36,11 @@ A PowerShell script that triggers every standard Configuration Manager (SCCM/MEC
 
 ## Usage
 
-### Run every action
-
 ```powershell
 .\Invoke-SCCMClientActions.ps1
 ```
 
-### Adjust the delay between actions
-
-```powershell
-.\Invoke-SCCMClientActions.ps1 -DelaySeconds 5
-```
-
-## Parameters
-
-| Parameter | Type | Default | Description |
-| --- | --- | --- | --- |
-| `DelaySeconds` | `int` (0–60) | `2` | Seconds to wait between triggering each action. |
+That's it — no parameters. The script runs all 12 actions back-to-back with a 5-second pause between each.
 
 ## How It Works
 
@@ -71,7 +59,7 @@ The actions run **asynchronously** on the client. To confirm what each action di
 
 | Action | Log to check |
 | --- | --- |
-| Machine / User Policy | `PolicyAgent.log`, `PolicyEvaluator.log` |
+| Machine Policy | `PolicyAgent.log`, `PolicyEvaluator.log` |
 | Hardware Inventory | `InventoryAgent.log` |
 | Software Inventory | `InventoryAgent.log` |
 | Application Deployment Evaluation | `AppDiscovery.log`, `AppEnforce.log` |
