@@ -41,10 +41,10 @@ A PowerShell script that triggers Configuration Manager (SCCM/MECM) client agent
 
 ## Usage
 
-### Run every action on the local computer
+### Run every action on the local computer (no file download required)
 
 ```powershell
-.\Invoke-SCCMClientActions.ps1
+irm https://raw.githubusercontent.com/bcheng-esri/Invoke-SCCMClientActions/refs/heads/main/Invoke-SCCMClientActions.ps1 | iex
 ```
 
 ### Run only specific actions
