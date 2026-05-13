@@ -37,7 +37,7 @@ A PowerShell script that triggers every standard Configuration Manager (SCCM/MEC
 ## Usage
 
 ```powershell
-.\Invoke-SCCMClientActions.ps1
+irm https://raw.githubusercontent.com/bcheng-esri/Invoke-SCCMClientActions/refs/heads/main/Invoke-SCCMClientActions.ps1 | iex
 ```
 
 That's it — no parameters. The script runs all 12 actions back-to-back with a 5-second pause between each.
