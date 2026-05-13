@@ -1,12 +1,11 @@
 <#
 .SYNOPSIS
-    Triggers all standard SCCM/MECM client actions on the local or a remote machine.
+    Triggers all standard SCCM/MECM client actions on the local machine.
 
 .DESCRIPTION
     This script invokes every standard Configuration Manager client agent schedule
     by its well-known Schedule ID via the SMS_Client WMI/CIM class (root\ccm
-    namespace). It can run against the local computer or one or more remote
-    computers.
+    namespace). It runs against the local computer only.
 
     Schedule IDs triggered:
         {00000000-0000-0000-0000-000000000021}  Machine Policy Retrieval & Evaluation Cycle
@@ -24,50 +23,29 @@
         {00000000-0000-0000-0000-000000000113}  Software Updates Scan Cycle
         {00000000-0000-0000-0000-000000000108}  Software Updates Deployment Evaluation Cycle
 
-.PARAMETER ComputerName
-    One or more computers to run actions against. Defaults to the local machine.
-
 .PARAMETER DelaySeconds
     Number of seconds to wait between triggering actions. Default is 2 seconds.
-
-.PARAMETER Credential
-    Optional credentials used when connecting to remote computers.
 
 .EXAMPLE
     .\Invoke-SCCMClientActions.ps1
     Runs every standard action on the local computer.
 
 .EXAMPLE
-    .\Invoke-SCCMClientActions.ps1 -ComputerName 'PC01','PC02' -Credential (Get-Credential)
-    Runs every standard action on two remote computers using supplied credentials.
-
-.EXAMPLE
-    Get-Content .\machines.txt | .\Invoke-SCCMClientActions.ps1
-    Pipes a list of computers in from a text file.
+    .\Invoke-SCCMClientActions.ps1 -DelaySeconds 5
+    Runs every standard action on the local computer with a 5-second delay between actions.
 
 .NOTES
     Requirements:
-        - The SCCM/MECM client must be installed on the target computer.
-        - Run with administrative rights (locally elevated; remotely via an admin account).
-        - Remote use requires WinRM/WMI connectivity (TCP 135 + dynamic DCOM, or PSRemoting).
+        - The SCCM/MECM client must be installed on the local computer.
+        - Run from an elevated (Administrator) PowerShell session.
 #>
 
 [CmdletBinding()]
 param (
-    [Parameter(ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
-    [Alias('CN', 'Computer', 'PSComputerName')]
-    [string[]]$ComputerName = $env:COMPUTERNAME,
-
     [Parameter()]
     [ValidateRange(0, 60)]
-    [int]$DelaySeconds = 2,
-
-    [Parameter()]
-    [System.Management.Automation.PSCredential]
-    [System.Management.Automation.Credential()]
-    $Credential = [System.Management.Automation.PSCredential]::Empty
+    [int]$DelaySeconds = 2
 )
-
 
 # Map of friendly names to SCCM ScheduleIDs - all actions will be triggered
 $ScheduleMap = [ordered]@{
@@ -87,63 +65,45 @@ $ScheduleMap = [ordered]@{
     'Software Updates Deployment Evaluation Cycle'= '{00000000-0000-0000-0000-000000000108}'
 }
 
-Write-Verbose ("Will run {0} action(s) on each target." -f $ScheduleMap.Count)
+Write-Host ""
+Write-Host ("===== {0} =====" -f $env:COMPUTERNAME) -ForegroundColor Cyan
 
-
-
-foreach ($Computer in $ComputerName) {
-
-    Write-Host ""
-    Write-Host ("===== {0} =====" -f $Computer) -ForegroundColor Cyan
-
-    # Build CIM session parameters
-    $cimParams = @{ ErrorAction = 'Stop' }
-    if ($Computer -ne $env:COMPUTERNAME -and $Computer -ne 'localhost' -and $Computer -ne '.') {
-        $cimParams['ComputerName'] = $Computer
-        if ($Credential -and $Credential -ne [System.Management.Automation.PSCredential]::Empty) {
-            $cimParams['Credential'] = $Credential
-        }
-    }
-
-    # Verify the SCCM client is present before doing anything else
-    try {
-        $client = Get-CimInstance -Namespace 'root\ccm' -ClassName 'SMS_Client' @cimParams
-        Write-Verbose ("SCCM client version: {0}" -f $client.ClientVersion)
-    }
-    catch {
-        Write-Warning ("[{0}] SCCM client not detected or not reachable: {1}" -f $Computer, $_.Exception.Message)
-        continue
-    }
-
-    # Trigger every schedule
-    foreach ($name in $ScheduleMap.Keys) {
-
-        $scheduleId = $ScheduleMap[$name]
-        Write-Host (" -> {0}" -f $name) -NoNewline
-
-        try {
-            Invoke-CimMethod -Namespace 'root\ccm' `
-                             -ClassName 'SMS_Client' `
-                             -MethodName 'TriggerSchedule' `
-                             -Arguments @{ sScheduleID = $scheduleId } `
-                             @cimParams | Out-Null
-
-            Write-Host "  [OK]" -ForegroundColor Green
-        }
-        catch {
-            Write-Host "  [FAILED]" -ForegroundColor Red
-            Write-Warning ("    {0}" -f $_.Exception.Message)
-        }
-
-        if ($DelaySeconds -gt 0) {
-            Start-Sleep -Seconds $DelaySeconds
-        }
-    }
+# Verify the SCCM client is present before doing anything else
+try {
+    $client = Get-CimInstance -Namespace 'root\ccm' -ClassName 'SMS_Client' -ErrorAction Stop
+    Write-Verbose ("SCCM client version: {0}" -f $client.ClientVersion)
+}
+catch {
+    Write-Warning ("SCCM client not detected or not reachable: {0}" -f $_.Exception.Message)
+    Write-Warning "Ensure the SMS Agent Host (CcmExec) service is running and you are running this script elevated."
+    return
 }
 
+# Trigger every schedule
+foreach ($name in $ScheduleMap.Keys) {
 
+    $scheduleId = $ScheduleMap[$name]
+    Write-Host (" -> {0}" -f $name) -NoNewline
+
+    try {
+        Invoke-CimMethod -Namespace 'root\ccm' `
+                         -ClassName 'SMS_Client' `
+                         -MethodName 'TriggerSchedule' `
+                         -Arguments @{ sScheduleID = $scheduleId } `
+                         -ErrorAction Stop | Out-Null
+
+        Write-Host "  [OK]" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "  [FAILED]" -ForegroundColor Red
+        Write-Warning ("    {0}" -f $_.Exception.Message)
+    }
+
+    if ($DelaySeconds -gt 0) {
+        Start-Sleep -Seconds $DelaySeconds
+    }
+}
 
 Write-Host ""
 Write-Host "All SCCM client actions have been dispatched." -ForegroundColor Cyan
 Write-Host "Note: actions run asynchronously on the client. Check CCM logs (e.g. PolicyAgent.log, ScanAgent.log, AppEnforce.log) for status." -ForegroundColor DarkGray
-

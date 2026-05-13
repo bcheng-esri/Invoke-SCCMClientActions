@@ -1,16 +1,13 @@
 # Invoke-SCCMClientActions
 
-A PowerShell script that triggers every standard Configuration Manager (SCCM/MECM) client agent action on local or remote computers — the same actions exposed in the **Configuration Manager** applet in Control Panel under the **Actions** tab, but scripted and bulk-runnable.
+A PowerShell script that triggers every standard Configuration Manager (SCCM/MECM) client agent action on the local computer — the same actions exposed in the **Configuration Manager** applet in Control Panel under the **Actions** tab, but scripted and runnable in a single command.
 
 ## Features
 
 - Triggers **all 14 standard SCCM client actions** via the `SMS_Client` CIM class
-- Runs against the **local machine** or **one or more remote computers**
-- Optional **`-Credential`** parameter for remote authentication
 - Configurable **delay between actions** to avoid hammering the client
 - Verifies the SCCM client is installed/reachable before triggering
 - Color-coded per-action status and warnings on failure
-- Pipeline-friendly (`'PC01','PC02' | .\Invoke-SCCMClientActions.ps1`)
 
 ## Actions Triggered
 
@@ -34,34 +31,15 @@ A PowerShell script that triggers every standard Configuration Manager (SCCM/MEC
 ## Requirements
 
 - Windows PowerShell 5.1 or PowerShell 7+
-- SCCM/MECM client installed on the target machine
-- **Local runs:** an elevated (Administrator) PowerShell session
-- **Remote runs:** admin rights on the target plus WMI/DCOM (or WinRM) connectivity
+- SCCM/MECM client installed on the local machine
+- An **elevated (Administrator)** PowerShell session
 
 ## Usage
 
-### Run every action on the local computer
+### Run every action
 
 ```powershell
 .\Invoke-SCCMClientActions.ps1
-```
-
-### Run against remote computers
-
-```powershell
-.\Invoke-SCCMClientActions.ps1 -ComputerName 'PC01','PC02'
-```
-
-### Run remotely with alternate credentials
-
-```powershell
-.\Invoke-SCCMClientActions.ps1 -ComputerName 'PC01','PC02' -Credential (Get-Credential)
-```
-
-### Pipeline a list of computers
-
-```powershell
-Get-Content .\machines.txt | .\Invoke-SCCMClientActions.ps1
 ```
 
 ### Adjust the delay between actions
@@ -74,9 +52,7 @@ Get-Content .\machines.txt | .\Invoke-SCCMClientActions.ps1
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `ComputerName` | `string[]` | local computer | One or more target computers. Accepts pipeline input. |
 | `DelaySeconds` | `int` (0–60) | `2` | Seconds to wait between triggering each action. |
-| `Credential` | `PSCredential` | none | Credentials used for remote connections. |
 
 ## How It Works
 
@@ -107,7 +83,7 @@ CMTrace (shipped with the SCCM client) is the recommended viewer.
 ## Troubleshooting
 
 - **"SCCM client not detected or not reachable"** — the `root\ccm` namespace is missing. Confirm the client is installed and the **SMS Agent Host** (`CcmExec`) service is running.
-- **Access denied on remote machines** — make sure your account is a local administrator on the target and that DCOM/WMI (or WinRM) is allowed through the firewall.
+- **"Access denied"** — run PowerShell as Administrator.
 - **Action triggers but nothing seems to happen** — some actions (e.g. hardware inventory) only do work when their internal schedule says they're due. Check the corresponding log to confirm execution.
 
 ## License
