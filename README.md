@@ -1,12 +1,11 @@
 # Invoke-SCCMClientActions
 
-A PowerShell script that triggers Configuration Manager (SCCM/MECM) client agent actions on local or remote computers — the same actions exposed in the **Configuration Manager** applet in Control Panel under the **Actions** tab, but scripted and bulk-runnable.
+A PowerShell script that triggers every standard Configuration Manager (SCCM/MECM) client agent action on local or remote computers — the same actions exposed in the **Configuration Manager** applet in Control Panel under the **Actions** tab, but scripted and bulk-runnable.
 
 ## Features
 
-- Triggers **14 standard SCCM client actions** via the `SMS_Client` CIM class
+- Triggers **all 14 standard SCCM client actions** via the `SMS_Client` CIM class
 - Runs against the **local machine** or **one or more remote computers**
-- Run **all actions** or a **filtered subset** with tab-completed names
 - Optional **`-Credential`** parameter for remote authentication
 - Configurable **delay between actions** to avoid hammering the client
 - Verifies the SCCM client is installed/reachable before triggering
@@ -41,19 +40,11 @@ A PowerShell script that triggers Configuration Manager (SCCM/MECM) client agent
 
 ## Usage
 
-### Run every action on the local computer (no file download required)
+### Run every action on the local computer
 
 ```powershell
-irm https://raw.githubusercontent.com/bcheng-esri/Invoke-SCCMClientActions/refs/heads/main/Invoke-SCCMClientActions.ps1 | iex
+.\Invoke-SCCMClientActions.ps1
 ```
-
-### Run only specific actions
-
-```powershell
-.\Invoke-SCCMClientActions.ps1 -Action 'Machine Policy Retrieval & Evaluation Cycle','Software Updates Scan Cycle'
-```
-
-> Tip: tab-complete the value of `-Action` to see all supported names.
 
 ### Run against remote computers
 
@@ -84,7 +75,6 @@ Get-Content .\machines.txt | .\Invoke-SCCMClientActions.ps1
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `ComputerName` | `string[]` | local computer | One or more target computers. Accepts pipeline input. |
-| `Action` | `string[]` | all actions | Specific action(s) to run. If omitted, every action is triggered. |
 | `DelaySeconds` | `int` (0–60) | `2` | Seconds to wait between triggering each action. |
 | `Credential` | `PSCredential` | none | Credentials used for remote connections. |
 
